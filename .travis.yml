@@ -1,0 +1,104 @@
+matrix:
+  include:
+  - language: csharp
+    mono: none
+    dotnet: 2.1
+    env:
+      secure: CbaIrn9C58LJPligu3zUKFKM3HnPXrkrQhy0535+2e1JDpcxNJiTJzxnunntHgc+txOxLnjzpuzh0tWDELoYhK8DXHFsS8b0Ri8RNdZRPHHUoB2nMgMVB5iTy39M6XjcnIGRp4G2bCgb5xcd2pIIf4KkoqiHEuV2fTdlhJ9XET9d9VcqHwdAMP8SV1cOuLaN9rDsqmHLU4KGdhWvkihYY9UqXCCEvVtW3XjZvsShSHCc9vd9Q2RZdWQqbPDy8I/B1jf1vyWhCflGckWIz7QaTvPGhu40MvCY3SMUfvoneZKraiTEG2CnInH4XcgG0mu61/PXkUowGntsJqFgw+rrhFQ8/2Q1NR+nECKQPC+Qkx5scrkN3u/oPopSpfvAlwEd+1vMlEDwqH/9V3jWYMHK9O8K5MNpWnynVE/SskO/aLqZqNqczNlHZPTvdvmobHvwUPRUUfC955zvE7o4F8f+ylYqALyEz2Czl80F0+1UvEdu40FsesJ6+W3UOVlRpiX8eB3rozjSZUqFRR4uJ2IP/kFNHqP/S7tEdiX9Vutoe0IjOrnw8NM+ycSra0Ra1Wr2mDh3qFez9TdQsuCX4ktmULt1bj1xY7DlqPkCt5/KvdBXR/KQYhVfR7Xm4G+Yt0urHJJe5kwEm7A4ibG1/HNSivbTFpztZHVelz+kSXlEyUk=
+    script:
+    - dotnet build -c Release
+    - dotnet test -c Release
+    before_deploy:
+    - dotnet pack RSocket.Rpc.Core -c Release -p:Version=$TRAVIS_TAG
+    deploy:
+      provider: script
+      script: dotnet nuget push RSocket.Rpc.Core/bin/Release/RSocket.Rpc.Core.*.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+      skip_cleanup: true
+      on:
+        repo: rsocket/rsocket-rpc-net
+        tags: true
+  - language: cpp
+    os: linux
+    dist: trusty
+    compiler: gcc
+    before_install:
+    - wget https://github.com/google/protobuf/releases/download/v3.6.1/protobuf-cpp-3.6.1.tar.gz
+    - tar -xzvf protobuf-cpp-3.6.1.tar.gz
+    - pushd protobuf-3.6.1
+    - ./configure --disable-shared && make && sudo make install
+    - popd
+    script:
+    - pushd RSocket.Rpc.Protobuf
+    - cmake . -Bbuild && make -Cbuild
+    - popd
+    before_deploy:
+    - pushd RSocket.Rpc.Protobuf/build
+    - tar -czvf rsocket-rpc-protobuf-v${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x64.tar.gz rsocket_rpc_csharp_plugin
+    - popd
+    deploy:
+      provider: releases
+      api_key:
+        secure: ytD81ey3t8amMU3M6tYMi4aKTmOW/YNVv9T2CqMRIp+y1n/l8CqrlAfQneDMiCnacYKtNVfuNZLejfE6/d5IVq2sS3IOStZSJLyB6kUbHUIcp9PlwaVEi9axvnwKZa9eXM/lyjI9sQOoqxop0SkOUWjXizy17CnRbNv9vVg0Yn/zUJ80WjBc+f4D0h3IKE6TL6e9eiHNqisp/H/YcWbVvM7SAadOd7TLEnHqf3ThaYlvn+7vrE4wr7+OlR0IOgGkaBtg+QMTAwyYm+zrDrLPEmGt1m6LlrVXLlPgajTyvdv5Sd5r5oIThW1lOSZTEpunoqwewUvWnZ1LOglcjz9I4PXILV227swBkY4l4Xv1U2czrGdGxqhANcR24PM/uLZzzz2HCdzS5yFzuqsxs9SVRMXe4I9qjTgWPQfOYFRL0HOZsqOm5PiecdvNOjQIYigoJE/glZcykFIlEBGcE0qsfakvGZs2M1X84SZYlyx5yhk6RyT+WvJ4OgyaYm3qrKyqoH2F5ZUKkrorZEKsOyjwXEkUcJYEbMp9J8j0b8Ss7EkWWeWoUOaEPe6AGmuLSeHDu659g37ruSWWroq9vwrA5h//2gmYeZ2LiPI6NC+WeMQkikPvGUdQMrafJORBiWZStLzmRYnxvk9qNd3t6I62o3IULDHlWDDUA+xhdhvBZnk=
+      file: RSocket.Rpc.Protobuf/build/rsocket-rpc-protobuf-v${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x64.tar.gz
+      skip_cleanup: true
+      on:
+        repo: rsocket/rsocket-rpc-net
+        tags: true
+  - language: cpp
+    os: osx
+    osx_image: xcode9.4
+    compiler: clang
+    env:
+    - HOMEBREW_TEMP="/tmp"
+    - LDFLAGS="/usr/local/lib/libprotobuf.a /usr/local/lib/libprotoc.a"
+    before_install:
+    - brew update
+    - EDITOR="sed -i '' 's/system \".\/configure\",/system \".\/configure\", \"--disable-shared\",/g'" brew edit protobuf
+    - brew install protobuf
+    script:
+    - pushd RSocket.Rpc.Protobuf
+    - cmake . -Bbuild && make -Cbuild
+    - popd
+    before_deploy:
+    - pushd RSocket.Rpc.Protobuf/build
+    - tar -czvf rsocket-rpc-protobuf-v${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x64.tar.gz rsocket_rpc_csharp_plugin
+    - popd
+    deploy:
+      provider: releases
+      api_key:
+        secure: ytD81ey3t8amMU3M6tYMi4aKTmOW/YNVv9T2CqMRIp+y1n/l8CqrlAfQneDMiCnacYKtNVfuNZLejfE6/d5IVq2sS3IOStZSJLyB6kUbHUIcp9PlwaVEi9axvnwKZa9eXM/lyjI9sQOoqxop0SkOUWjXizy17CnRbNv9vVg0Yn/zUJ80WjBc+f4D0h3IKE6TL6e9eiHNqisp/H/YcWbVvM7SAadOd7TLEnHqf3ThaYlvn+7vrE4wr7+OlR0IOgGkaBtg+QMTAwyYm+zrDrLPEmGt1m6LlrVXLlPgajTyvdv5Sd5r5oIThW1lOSZTEpunoqwewUvWnZ1LOglcjz9I4PXILV227swBkY4l4Xv1U2czrGdGxqhANcR24PM/uLZzzz2HCdzS5yFzuqsxs9SVRMXe4I9qjTgWPQfOYFRL0HOZsqOm5PiecdvNOjQIYigoJE/glZcykFIlEBGcE0qsfakvGZs2M1X84SZYlyx5yhk6RyT+WvJ4OgyaYm3qrKyqoH2F5ZUKkrorZEKsOyjwXEkUcJYEbMp9J8j0b8Ss7EkWWeWoUOaEPe6AGmuLSeHDu659g37ruSWWroq9vwrA5h//2gmYeZ2LiPI6NC+WeMQkikPvGUdQMrafJORBiWZStLzmRYnxvk9qNd3t6I62o3IULDHlWDDUA+xhdhvBZnk=
+      file: RSocket.Rpc.Protobuf/build/rsocket-rpc-protobuf-v${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x64.tar.gz
+      skip_cleanup: true
+      on:
+        repo: rsocket/rsocket-rpc-net
+        tags: true
+  - language: cpp
+    os: windows
+    before_install:
+    - wget https://github.com/google/protobuf/releases/download/v3.6.1/protobuf-cpp-3.6.1.tar.gz
+    - tar -xzvf protobuf-cpp-3.6.1.tar.gz
+    - pushd protobuf-3.6.1/cmake
+    - mkdir build && cd build
+    - cmake -DCMAKE_CXX_FLAGS="-std=c++11" -Dprotobuf_BUILD_TESTS=OFF ..
+    - cmake --build . --config Release
+    - cmake --build . --config Release --target install
+    - popd
+    script:
+    - pushd RSocket.Rpc.Protobuf
+    - mkdir build && cd build
+    - cmake -DProtobuf_LIBRARIES=/c/Program\ Files\ \(x86\)/protobuf/lib/ -DProtobuf_INCLUDE_DIR=/c/Program\ Files\ \(x86\)/protobuf/include/ -DProtobuf_LIBRARY=/c/Program\ Files\ \(x86\)/protobuf/lib/libprotobuf.lib -DProtobuf_PROTOC_LIBRARY=/c/Program\ Files\ \(x86\)/protobuf/lib/libprotoc.lib ..
+    - cmake --build . --config Release
+    - popd
+    before_deploy:
+    - pushd RSocket.Rpc.Protobuf/build
+    - tar -czvf rsocket-rpc-protobuf-v${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x64.tar.gz -C Release rsocket_rpc_csharp_plugin.exe
+    - popd
+    deploy:
+      provider: releases
+      api_key:
+        secure: ytD81ey3t8amMU3M6tYMi4aKTmOW/YNVv9T2CqMRIp+y1n/l8CqrlAfQneDMiCnacYKtNVfuNZLejfE6/d5IVq2sS3IOStZSJLyB6kUbHUIcp9PlwaVEi9axvnwKZa9eXM/lyjI9sQOoqxop0SkOUWjXizy17CnRbNv9vVg0Yn/zUJ80WjBc+f4D0h3IKE6TL6e9eiHNqisp/H/YcWbVvM7SAadOd7TLEnHqf3ThaYlvn+7vrE4wr7+OlR0IOgGkaBtg+QMTAwyYm+zrDrLPEmGt1m6LlrVXLlPgajTyvdv5Sd5r5oIThW1lOSZTEpunoqwewUvWnZ1LOglcjz9I4PXILV227swBkY4l4Xv1U2czrGdGxqhANcR24PM/uLZzzz2HCdzS5yFzuqsxs9SVRMXe4I9qjTgWPQfOYFRL0HOZsqOm5PiecdvNOjQIYigoJE/glZcykFIlEBGcE0qsfakvGZs2M1X84SZYlyx5yhk6RyT+WvJ4OgyaYm3qrKyqoH2F5ZUKkrorZEKsOyjwXEkUcJYEbMp9J8j0b8Ss7EkWWeWoUOaEPe6AGmuLSeHDu659g37ruSWWroq9vwrA5h//2gmYeZ2LiPI6NC+WeMQkikPvGUdQMrafJORBiWZStLzmRYnxvk9qNd3t6I62o3IULDHlWDDUA+xhdhvBZnk=
+      file: RSocket.Rpc.Protobuf/build/rsocket-rpc-protobuf-v${TRAVIS_TAG}-${TRAVIS_OS_NAME}-x64.tar.gz
+      skip_cleanup: true
+      on:
+        repo: rsocket/rsocket-rpc-net
+        tags: true

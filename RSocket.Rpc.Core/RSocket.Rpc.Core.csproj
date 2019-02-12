@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Copyright>Copyright 2018-2019 the original author or authors.</Copyright>
+    <AssemblyTitle>RSocket RPC Core</AssemblyTitle>
+    <Authors>RSocket RPC authors.</Authors>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <PackageId>RSocket.Rpc.Core</PackageId>
+    <PackageProjectUrl>https://github.com/rsocket/rsocket-rpc-net</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RSocket.Core" Version="0.1.6" />
+    <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
+  </ItemGroup>
+
+</Project>

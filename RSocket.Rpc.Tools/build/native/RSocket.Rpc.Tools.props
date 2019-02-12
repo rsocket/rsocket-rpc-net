@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+
+    <!-- Revision number of this package conventions (as if "API" version). -->
+    <Protobuf_ToolingRevision>1</Protobuf_ToolingRevision>
+
+    <!-- For a Visual Studio C++ native project we currently only resolve tools and import paths. -->
+    <!-- TODO(kkm): Do not place non-tools under tools/, use build/native/bin/. -->
+    <!-- TODO(kkm): Do not package windows x64 builds (#13098). -->
+    <Protobuf_ProtocFullPath>$(MSBuildThisFileDirectory)..\..\tools\windows_x86\protoc.exe</Protobuf_ProtocFullPath>
+    <Protobuf_StandardImportsPath>$(MSBuildThisFileDirectory)include\</Protobuf_StandardImportsPath>
+    <RSocket_Rpc_PluginFileName>rsocket_rpc_cpp_plugin</RSocket_Rpc_PluginFileName>
+    <RSocket_Rpc_PluginFullPath>$(MSBuildThisFileDirectory)..\..\tools\windows_x86\rsocket_rpc_cpp_plugin.exe</RSocket_Rpc_PluginFullPath>
+  </PropertyGroup>
+</Project>

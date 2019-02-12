@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>RSocket.Rpc</id>
+    <title>RSocket RPC C#</title>
+    <summary>C# implementation of RSocket RPC - an RPC library and framework</summary>
+    <description>C# implementation of RSocket RPC - an RPC library and framework. See project site for more info.</description>
+    <version>$version$</version>
+    <authors>Netifi Inc.</authors>
+    <owners>netifi</owners>
+    <copyright>Copyright 2019, Netifi Inc.</copyright>
+    <tags>RSocket RPC Protocol</tags>
+    <dependencies>
+      <dependency id="RSocket.Rpc.Core" version="$version$" />
+    </dependencies>
+  </metadata>
+  <files/>
+</package>

@@ -1,0 +1,14 @@
+{
+  "RSocket.Rpc.Core.Tests": [
+  ],
+  "RSocket.Rpc.Tools.Tests": [
+    "RSocket.Rpc.Tools.Tests.CppGeneratorTest",
+    "RSocket.Rpc.Tools.Tests.CSharpGeneratorTest",
+    "RSocket.Rpc.Tools.Tests.DepFileUtilTest",
+    "RSocket.Rpc.Tools.Tests.GeneratorTest",
+    "RSocket.Rpc.Tools.Tests.ProtoCompileBasicTest",
+    "RSocket.Rpc.Tools.Tests.ProtoCompileCommandLineGeneratorTest",
+    "RSocket.Rpc.Tools.Tests.ProtoCompileCommandLinePrinterTest",
+    "RSocket.Rpc.Tools.Tests.ProtoToolsPlatformTaskTest"
+  ]
+}

@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <BuildOutputTargetFolder>build\_protobuf\</BuildOutputTargetFolder>
+    <AssemblyName>Protobuf.MSBuild</AssemblyName>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <Description>RSocket RPC and Protocol Buffer compiler for managed C# and native C++ projects.
+
+Add this package to a project that contains .proto files to be compiled to code.
+It contains the compilers, include files and project system integration for RSocket RPC
+and Protocol buffer service description files necessary to build them on Windows,
+Linux and MacOS. Managed runtime is supplied separately in the RSocket.Rpc.Core package.</Description>
+    <Copyright>Copyright 2018-2019 the original author or authors.</Copyright>
+    <Authors>RSocket RPC authors.</Authors>
+    <PackageId>RSocket.Rpc.Tools</PackageId>
+    <PackageProjectUrl>https://github.com/rsocket/rsocket-rpc-net</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Asset root folders. TODO(kkm): Change with package separation.">
+    <Assets_ProtoInclude>../RSocket.Rpc.Protobuf/proto/</Assets_ProtoInclude>
+    <Assets_ProtoCompiler>../protoc_plugins/</Assets_ProtoCompiler>
+  </PropertyGroup>
+
+  <ItemGroup Label="NuGet package assets">
+    <None Pack="true" PackagePath="build\" Include="build\**\*.xml; build\**\*.props; build\**\*.targets;" />
+
+    <!-- Protobuf assets (for Google.Protobuf.Tools) -->
+    <_ProtoAssetName Include="any;api;descriptor;duration;empty;field_mask;source_context;struct;timestamp;type;wrappers" />
+    <_Asset PackagePath="build/native/include/google/protobuf/" Include="@(_ProtoAssetName->'$(Assets_ProtoInclude)/google/protobuf/%(Identity).proto')" />
+    <_Asset PackagePath="build/native/include/rsocket/" Include="$(Assets_ProtoInclude)/rsocket/options.proto" />
+    <_Asset PackagePath="tools/windows_x64/" Include="$(Assets_ProtoCompiler)windows_x64/protoc.exe" />
+    <_Asset PackagePath="tools/linux_x64/" Include="$(Assets_ProtoCompiler)linux_x64/protoc" />
+    <_Asset PackagePath="tools/macosx_x64/" Include="$(Assets_ProtoCompiler)macosx_x64/protoc" />
+
+    <!-- RSocket RPC assets (for RSocket.Rpc.Tools) -->
+    <_Asset PackagePath="tools/windows_x64/" Include="$(Assets_ProtoCompiler)windows_x64/rsocket_rpc_csharp_plugin.exe" />
+    <_Asset PackagePath="tools/linux_x64/" Include="$(Assets_ProtoCompiler)linux_x64/rsocket_rpc_csharp_plugin" />
+    <_Asset PackagePath="tools/macosx_x64/" Include="$(Assets_ProtoCompiler)macosx_x64/rsocket_rpc_csharp_plugin" />
+  
+    <None Include="@(_Asset)" Pack="true" Visible="false" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Framework; Microsoft.Build.Utilities.Core" Version="15.6.*" />
+    <!--  Set PrivateAssets="All" on all items, even those implicitly added,
+          so that they do not become dependencies of this package. -->
+    <PackageReference Update="@(PackageReference)" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

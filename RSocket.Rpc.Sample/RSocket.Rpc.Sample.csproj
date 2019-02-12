@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition=" '$(VersionSuffix)' != '' ">
+      <PropertyGroup>
+        <RestoreSources>$(RestoreSources);../RSocket.Rpc.Tools/bin/$(Configuration);https://api.nuget.org/v3/index.json</RestoreSources>
+      </PropertyGroup>
+      <ItemGroup>
+        <PackageReference Include="Google.Protobuf" Version="3.6.1" />
+        <PackageReference Include="RSocket.Rpc.Tools" Version="$(Version)">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </When>
+    <Otherwise>
+      <ItemGroup>
+        <PackageReference Include="Google.Protobuf" Version="3.6.1" />
+        <PackageReference Include="RSocket.Rpc.Tools" Version="0.2.4">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+
+  <ItemGroup>
+    <None Remove="EchoService.proto" />
+    <None Remove="SimpleService.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RSocket.Rpc.Core\RSocket.Rpc.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProtoBuf Include="rsocket\options.proto" RSocketRpcServices="None" />
+    <ProtoBuf Include="echo.proto" RSocketRpcServices="Both" />
+  </ItemGroup>
+
+</Project>

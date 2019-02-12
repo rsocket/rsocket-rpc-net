@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <RSocketRpc_PluginFileName Condition=" '$(RSocketRpc_PluginFileName)' == '' and '$(Language)' == 'C#' ">rsocket_rpc_csharp_plugin</RSocketRpc_PluginFileName>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(Protobuf_ProjectSupported)' == 'true' and '$(Language)' == 'C#' ">
+    <!-- Extend property pages with RSocket RPC properties. -->
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)RSocketRpc.CSharp.xml">
+      <Context>File;BrowseObject</Context>
+    </PropertyPageSchema>
+  </ItemGroup>
+
+  <ItemDefinitionGroup Condition=" '$(Protobuf_ProjectSupported)' == 'true' and '$(Language)' == 'C#' ">
+    <ProtoBuf>
+      <RSocketRpcServices Condition=" '%(ProtoBuf.RSocketRpcServices)' == '' ">Both</RSocketRpcServices>
+    </ProtoBuf>
+  </ItemDefinitionGroup>
+
+  <!-- This target is invoked in a C# project, or can be called in a customized project. -->
+  <Target Name="RSocketRpc_ResolvePluginFullPath" AfterTargets="Protobuf_ResolvePlatform">
+    <PropertyGroup>
+      <!-- TODO(kkm): Do not use Protobuf_PackagedToolsPath, roll RSocket RPC's own. -->
+      <RSocketRpc_PluginFullPath Condition=" '$(RSocketRpc_PluginFullPath)' == '' and '$(Protobuf_ToolsOs)' == 'windows' "
+           >$(Protobuf_PackagedToolsPath)\$(Protobuf_ToolsOs)_$(Protobuf_ToolsCpu)\$(RSocketRpc_PluginFileName).exe</RSocketRpc_PluginFullPath>
+      <RSocketRpc_PluginFullPath Condition=" '$(RSocketRpc_PluginFullPath)' == '' "
+           >$(Protobuf_PackagedToolsPath)/$(Protobuf_ToolsOs)_$(Protobuf_ToolsCpu)/$(RSocketRpc_PluginFileName)</RSocketRpc_PluginFullPath>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_RSocketRpc_PrepareCompileOptions" AfterTargets="Protobuf_PrepareCompileOptions">
+    <ItemGroup Condition=" '$(Language)' == 'C#' ">
+      <Protobuf_Compile Condition=" %(Protobuf_Compile.RSocketRpcServices) != 'None' ">
+        <RSocketRpcPluginExe Condition=" '%(Protobuf_Compile.RSocketRpcPluginExe)' == '' ">$(RSocketRpc_PluginFullPath)</RSocketRpcPluginExe>
+        <RSocketRpcOutputDir Condition=" '%(Protobuf_Compile.RSocketRpcOutputDir)' == '' " >%(Protobuf_Compile.OutputDir)</RSocketRpcOutputDir>
+        <_RSocketRpcOutputOptions Condition=" '%(Protobuf_Compile.Access)' == 'Internal' ">%(Protobuf_Compile._RSocketRpcOutputOptions);internal_access</_RSocketRpcOutputOptions>
+      </Protobuf_Compile>
+      <Protobuf_Compile Condition=" '%(Protobuf_Compile.RSocketRpcServices)' == 'Client' ">
+        <_RSocketRpcOutputOptions>%(Protobuf_Compile._RSocketRpcOutputOptions);no_server</_RSocketRpcOutputOptions>
+      </Protobuf_Compile>
+      <Protobuf_Compile Condition=" '%(Protobuf_Compile.RSocketRpcServices)' == 'Server' ">
+        <_RSocketRpcOutputOptions>%(Protobuf_Compile._RSocketRpcOutputOptions);no_client</_RSocketRpcOutputOptions>
+      </Protobuf_Compile>
+    </ItemGroup>
+  </Target>
+</Project>
