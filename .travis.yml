@@ -1,6 +1,8 @@
 matrix:
   include:
   - language: csharp
+    os: linux
+    dist: xenial
     mono: none
     dotnet: 2.1
     env:
@@ -19,7 +21,7 @@ matrix:
         tags: true
   - language: cpp
     os: linux
-    dist: trusty
+    dist: xenial
     compiler: gcc
     before_install:
     - wget https://github.com/google/protobuf/releases/download/v3.6.1/protobuf-cpp-3.6.1.tar.gz
