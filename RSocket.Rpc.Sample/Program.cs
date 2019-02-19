@@ -1,40 +1,19 @@
 using System;
-using System.Buffers;
-using System.Text;
 using System.Threading.Tasks;
 using RSocket;
-using RSocket.RPC;
 using RSocket.Transports;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Google.Protobuf.WellKnownTypes;
+#if NETCOREAPP3_0
+#else
+using RSocket.Collections.Generic;
+#endif
+
 
 namespace RSocketRPCSample
 {
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Threading;
-	using Google.Protobuf;
-	using Google.Protobuf.WellKnownTypes;
-#if NETCOREAPP3_0
-#else
-	using RSocket.Collections.Generic;
-#endif
-
-	// TODO They Changed it AGAIN!
-
-	//public interface IAsyncEnumerable<out T>
-	//{
-	//	IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default);
-	//}
-	//public interface IAsyncEnumerator<out T> : IAsyncDisposable
-	//{
-	//	T Current { get; }
-
-	//	ValueTask<bool> MoveNextAsync();
-	//}
-	//public interface IAsyncDisposable
-	//{
-	//	ValueTask DisposeAsync();
-	//}
-
 
 	class Program
 	{
