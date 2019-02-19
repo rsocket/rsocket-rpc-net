@@ -6,7 +6,7 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
-  <Choose>
+  <!--<Choose>
     <When Condition=" '$(VersionSuffix)' != '' ">
       <PropertyGroup>
         <RestoreSources>$(RestoreSources);../RSocket.Rpc.Tools/bin/$(Configuration);https://api.nuget.org/v3/index.json</RestoreSources>
@@ -28,7 +28,11 @@
         </PackageReference>
       </ItemGroup>
     </Otherwise>
-  </Choose>
+  </Choose>-->
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.6.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Remove="EchoService.proto" />
@@ -39,9 +43,9 @@
     <ProjectReference Include="..\RSocket.Rpc.Core\RSocket.Rpc.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!--<ItemGroup>
     <ProtoBuf Include="rsocket\options.proto" RSocketRpcServices="None" />
     <ProtoBuf Include="echo.proto" RSocketRpcServices="Both" />
-  </ItemGroup>
+  </ItemGroup>-->
 
 </Project>

@@ -1,12 +1,11 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Buffers;
+using System.Threading.Tasks;
+using RSocket.Transports;
 
 namespace RSocket.RPC.Tests
 {
-	using System.Buffers;
-	using System.Threading.Tasks;
-	using RSocket.Transports;
-
 	[TestClass]
 	public class RSocketServiceTests
 	{
@@ -41,11 +40,10 @@ namespace RSocket.RPC.Tests
 			private const string SERVICE = nameof(TestService);
 			public TestService(RSocketClient client) : base(client) { }
 			//public void fireAndForget(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default) { Client.RequestFireAndForget(null, data, metadata); }
-			public Task<ReadOnlySequence<byte>> RequestResponse(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default) => __RequestResponse(data, metadata, service: SERVICE);
+			public Task<ReadOnlySequence<byte>> RequestResponse(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default) => __RequestResponse(data, _ => _, _ => _, metadata, service: SERVICE);
 			//public Task<ReadOnlySequence<byte>> RequestStream(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default) => base.__RequestStream<ReadOnlySequence<byte>>(ServicePrefix + nameof(TestService), nameof(RequestStream), data, metadata);
 			//public void requestChannel(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default) { Client.RequestChannel(null, data, metadata); }
 		}
-
 
 
 		[TestMethod]
