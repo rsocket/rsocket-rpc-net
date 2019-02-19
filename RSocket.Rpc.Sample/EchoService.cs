@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Threading.Tasks;
 using RSocket;
 using RSocket.RPC;
+using System.Threading;
 #if NETCOREAPP3_0
 using System.Collections.Generic;
 #else
@@ -65,6 +66,40 @@ namespace RSocketRPCSample
 				__RequestChannel(messages, Google.Protobuf.MessageExtensions.ToByteArray,
 					Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom, metadata, service: EchoService.Service,
 					method: EchoService.Method_requestChannel);
+
+
+			#region Adapters to allow compilation in .NET Core 3.0 to call .NET Standard 2.0 Library using proper IAsyncEnumerable
+#if NETCOREAPP3_0
+			private async new IAsyncEnumerable<TResult> __RequestStream<TMessage, TResult>(TMessage message, Func<TMessage, byte[]> sourcemapper, Func<byte[], TResult> resultmapper, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> tracing = default, string service = default, string method = default)
+			{ await foreach (var _ in base.__RequestStream(message, sourcemapper, resultmapper, metadata, tracing, service, method)) { yield return _; } }
+
+			private async IAsyncEnumerable<TResult> __RequestChannel<TMessage, TResult>(IAsyncEnumerable<TMessage> messages, Func<TMessage, byte[]> sourcemapper, Func<byte[], TResult> resultmapper, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default, ReadOnlySequence<byte> tracing = default, string service = default, string method = default)
+			{ await foreach (var _ in base.__RequestChannel(new AsyncEnumerable<TMessage>(messages), sourcemapper, resultmapper, data, metadata, tracing, service, method)) { yield return _; } }
+
+			/// <summary>Interface forwarding from RSocket...IAsyncEnumerable to IAsyncEnumerable</summary>
+			private class AsyncEnumerable<T> : RSocket.Collections.Generic.IAsyncEnumerable<T>
+			{
+				readonly IAsyncEnumerable<T> Source;
+				public AsyncEnumerable(IAsyncEnumerable<T> source) { Source = source; }
+				public RSocket.Collections.Generic.IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => new Enumerator(Source.GetAsyncEnumerator(cancellationToken));
+				private class Enumerator : RSocket.Collections.Generic.IAsyncEnumerator<T>
+				{
+					readonly IAsyncEnumerator<T> Source;
+					public Enumerator(IAsyncEnumerator<T> source) { Source = source; }
+					public T Current => Source.Current;
+					public ValueTask DisposeAsync() => Source.DisposeAsync();
+					public ValueTask<bool> MoveNextAsync() => Source.MoveNextAsync();
+				}
+			}
+
+#endif
+			#endregion
+		}
+
+		static internal class EchoServiceExtensions
+		{
+
+
 		}
 
 		public class EchoServiceServer : RSocketServer

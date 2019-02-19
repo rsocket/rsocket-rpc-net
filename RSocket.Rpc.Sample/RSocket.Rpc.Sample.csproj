@@ -2,9 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <DefineConstants Condition="'$(LangVersion)' == '8.0'">CSHARP8</DefineConstants>
   </PropertyGroup>
+
 
   <!--<Choose>
     <When Condition=" '$(VersionSuffix)' != '' ">

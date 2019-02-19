@@ -13,7 +13,28 @@ namespace RSocketRPCSample
 	using System.Threading;
 	using Google.Protobuf;
 	using Google.Protobuf.WellKnownTypes;
+#if NETCOREAPP3_0
+#else
 	using RSocket.Collections.Generic;
+#endif
+
+	// TODO They Changed it AGAIN!
+
+	//public interface IAsyncEnumerable<out T>
+	//{
+	//	IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default);
+	//}
+	//public interface IAsyncEnumerator<out T> : IAsyncDisposable
+	//{
+	//	T Current { get; }
+
+	//	ValueTask<bool> MoveNextAsync();
+	//}
+	//public interface IAsyncDisposable
+	//{
+	//	ValueTask DisposeAsync();
+	//}
+
 
 	class Program
 	{
@@ -37,39 +58,62 @@ namespace RSocketRPCSample
 			var result = await service.RequestResponse(Value.ForString($"{nameof(service.RequestResponse)}: Calling service..."));
 			Console.WriteLine($"Sample Result: {result.StringValue}");
 
+
+			//C# 8.0: Change the target language version to see IAsyncEnumerable iteration using built-in language constructs. (Project -> Properties -> Build -> Advanced -> Language Version)
+#if CSHARP8
+			//Make a service call and asynchronously iterate the returning values.
+			var stream = service.RequestStream(Value.ForString($"{nameof(service.RequestStream)}: Calling service..."));
+			await foreach (var value in stream)
+			{
+				Console.WriteLine($"Stream Result: {value.StringValue}");
+			}
+			Console.WriteLine("Stream Done");
+
+
+			//Make a service call taking asynchronous values and asynchronously iterate the returning values.
+			var channel = service.RequestChannel(GenerateValues());
+			await foreach (var value in channel)
+			{
+				Console.WriteLine($"Channel Result: {value.StringValue}");
+			}
+			Console.WriteLine("Channel Done");
+
+#else
 			//Make a service call and asynchronously iterate the returning values.
 			var stream = service.RequestStream(Value.ForString($"{nameof(service.RequestStream)}: Calling service..."));
 			await ForEach(stream, value => Console.WriteLine($"Stream Result: {value.StringValue}"), () => Console.WriteLine("Stream Done"));
 
 
 			//Make a service call taking asynchronous values and asynchronously iterate the returning values.
-			var values = new AsyncValues<Google.Protobuf.WellKnownTypes.Value>(
-				Task.FromResult(from value in new[] { Value.ForString($"Initial Value"), } select value),
-				Task.FromResult(from value in new[] { 2, 3, 4 } select Value.ForString($"Value {value}")));
-			//	await ForEach(values, value => Console.WriteLine($"Values Result: {value}"), () => Console.WriteLine("Values Done"));
-
-			var channel = service.RequestChannel(values);
+			var channel = service.RequestChannel(GenerateValues());
 			await ForEach(channel, value => Console.WriteLine($"Channel Result: {value.StringValue}"), () => Console.WriteLine("Channel Done"));
 
-
 			//Wait for a keypress to end session.
-			Console.WriteLine($"Press any key to continue...");
-			Console.ReadKey();
+			{ Console.WriteLine($"Press any key to continue..."); Console.ReadKey(); }
+#endif
 		}
 
 
-		/// <summary>Helper method to show Asynchronous Enumeration in C# 7</summary>
-		static public async Task ForEach<T>(RSocket.Collections.Generic.IAsyncEnumerable<T> enumerable, Action<T> action, Action final = default)
+		//.Net Core 3.0: Change the Framework Version to include the genuine IAsyncEnumerable Interface. (Project -> Properties -> Application -> Target Framework)
+#if NETCOREAPP3_0
+
+		//Use the state machine compiler to create an awaitable generator.
+		static async IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> GenerateValues()
 		{
-			var enumerator = enumerable.GetAsyncEnumerator();
-			try
-			{
-				while (await enumerator.MoveNextAsync()) { action(enumerator.Current); }
-				final?.Invoke();
-			}
-			finally { await enumerator.DisposeAsync(); }
+			yield return Value.ForString($"Initial Value");
+			await Task.Delay(100);
+			foreach (var value in from value in new[] { 2, 3, 4 } select Value.ForString($"Value {value}"))
+			{ yield return value; }
 		}
+#else
 
+		//Use a helper class create an awaitable generator.
+		static IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> GenerateValues()
+		{
+			return new AsyncValues<Google.Protobuf.WellKnownTypes.Value>(
+				Task.FromResult(from value in new[] { Value.ForString($"Initial Value"), } select value),
+				Task.FromResult(from value in new[] { 2, 3, 4 } select Value.ForString($"Value {value}")));
+		}
 
 		/// <summary>An asynchronously enumerable set of values.</summary>
 		public class AsyncValues<T> : RSocket.Collections.Generic.IAsyncEnumerable<T>
@@ -79,9 +123,9 @@ namespace RSocketRPCSample
 			public AsyncValues(params Task<IEnumerable<T>>[] from) { From = from; }
 			public AsyncValues(IEnumerable<Task<IEnumerable<T>>> from) { From = from; }
 
-			public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => new Enumerator(From);
+			public RSocket.Collections.Generic.IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => new Enumerator(From);
 
-			private class Enumerator : IAsyncEnumerator<T>
+			private class Enumerator : RSocket.Collections.Generic.IAsyncEnumerator<T>
 			{
 				readonly IEnumerator<Task<IEnumerable<T>>> under;
 				IEnumerator<T> into;
@@ -104,6 +148,19 @@ namespace RSocketRPCSample
 
 				public ValueTask DisposeAsync() => new ValueTask();
 			}
+		}
+#endif
+
+		/// <summary>Helper method to show Asynchronous Enumeration in C#7. This is not needed in C#8</summary>
+		static public async Task ForEach<T>(RSocket.Collections.Generic.IAsyncEnumerable<T> enumerable, Action<T> action, Action final = default)
+		{
+			var enumerator = enumerable.GetAsyncEnumerator();
+			try
+			{
+				while (await enumerator.MoveNextAsync()) { action(enumerator.Current); }
+				final?.Invoke();
+			}
+			finally { await enumerator.DisposeAsync(); }
 		}
 	}
 }
