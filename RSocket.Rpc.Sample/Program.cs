@@ -6,17 +6,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Google.Protobuf.WellKnownTypes;
-#if NETCOREAPP3_0
-#else
-using RSocket.Collections.Generic;
-#endif
-
 
 namespace RSocketRPCSample
 {
 
 	class Program
 	{
+		static async Task Main1(string[] args)
+		{
+			var client = new RSocketClient(
+				new WebSocketTransport("ws://localhost:9092/"));
+			var service = new EchoService.EchoServiceClient(client);
+
+			await client.ConnectAsync();
+		}
+
 		static async Task Main(string[] args)
 		{
 			//Create a new Client.
@@ -95,16 +99,16 @@ namespace RSocketRPCSample
 		}
 
 		/// <summary>An asynchronously enumerable set of values.</summary>
-		public class AsyncValues<T> : RSocket.Collections.Generic.IAsyncEnumerable<T>
+		public class AsyncValues<T> : IAsyncEnumerable<T>
 		{
 			readonly IEnumerable<Task<IEnumerable<T>>> From;
 
 			public AsyncValues(params Task<IEnumerable<T>>[] from) { From = from; }
 			public AsyncValues(IEnumerable<Task<IEnumerable<T>>> from) { From = from; }
 
-			public RSocket.Collections.Generic.IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => new Enumerator(From);
+			public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => new Enumerator(From);
 
-			private class Enumerator : RSocket.Collections.Generic.IAsyncEnumerator<T>
+			private class Enumerator : IAsyncEnumerator<T>
 			{
 				readonly IEnumerator<Task<IEnumerable<T>>> under;
 				IEnumerator<T> into;
@@ -131,7 +135,7 @@ namespace RSocketRPCSample
 #endif
 
 		/// <summary>Helper method to show Asynchronous Enumeration in C#7. This is not needed in C#8</summary>
-		static public async Task ForEach<T>(RSocket.Collections.Generic.IAsyncEnumerable<T> enumerable, Action<T> action, Action final = default)
+		static public async Task ForEach<T>(IAsyncEnumerable<T> enumerable, Action<T> action, Action final = default)
 		{
 			var enumerator = enumerable.GetAsyncEnumerator();
 			try

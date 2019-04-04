@@ -1,14 +1,11 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using RSocket;
 using RSocket.RPC;
 using System.Threading;
-#if NETCOREAPP3_0
-using System.Collections.Generic;
-#else
-using RSocket.Collections.Generic;
-#endif
+using System.Linq;
 
 namespace RSocketRPCSample
 {
@@ -96,41 +93,37 @@ namespace RSocketRPCSample
 			#endregion
 		}
 
-		static internal class EchoServiceExtensions
+
+		static IAsyncEnumerable<byte[]> Dispatch(IEchoService service, ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata)
 		{
-
-
+			switch (method)
+			{
+				case Method_fireAndForget: return AsyncEnumerable.Empty<byte[]>();
+				//case Method_requestResponse: return from result in AsyncEnumerable.Repeat(		//TODO This would have to produce an IAE<Result> for this pattern to work.
+				//	requestResponse(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()),
+				//	metadata), 1) select Google.Protobuf.MessageExtensions.ToByteArray(result);
+				case Method_requestStream: return from result in service.RequestStream(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);
+				case Method_requestChannel: throw new NotImplementedException();
+				default: throw new InvalidOperationException($"Unknown method {method}.");
+			}
 		}
 
-		public class EchoServiceServer : RSocketServer
+		public class EchoServiceServer : IEchoService, IRSocketService
 		{
-			public EchoServiceServer(IRSocketServerTransport transport) : base(transport)
-			{
-			}
+			public string ServiceName => Service;
 
-			public override void RequestStream(in RSocketProtocol.RequestStream message,
-				ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
-			{
-			}
+			//TODO Ask: So IAE<T> from everything? Or separate dispatchers for return types...? can reflection fix this?
+			//TODO Ask about the return types here - force all IAE?
+			//TODO Ask: structure, service name, reflection, default return values (stream, etc), byte[] as common return type. Should probably convert to byte[] (tracing, metadata, data).
 
-			public override void RequestResponse(in RSocketProtocol.RequestResponse message,
-				ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
-			{
-				var rpc = new RSocketService.RemoteProcedureCallMetadata(metadata);
-				new RSocketProtocol.Payload(message.Stream, data, metadata, complete: true).Write(Transport.Output,
-					data, metadata);
-				Transport.Output.FlushAsync();
-			}
+			IAsyncEnumerable<byte[]> IRSocketService.Dispatch(ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata) => Dispatch(this, data, method, tracing, metadata);
 
-			public override void RequestFireAndForget(in RSocketProtocol.RequestFireAndForget message,
-				ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
-			{
-			}
+			public virtual IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> RequestStream(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata)
+				=> AsyncEnumerable.Empty<Google.Protobuf.WellKnownTypes.Value>();	//TODO This is supposed to fire an error if not implemented. In here for testing.
 
-			public override void RequestChannel(in RSocketProtocol.RequestChannel message,
-				ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
-			{
-			}
+			public Task FireAndForget(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
+			public Task<Google.Protobuf.WellKnownTypes.Value> RequestResponse(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
+			public IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> RequestChannel(IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> messages, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
 		}
 	}
 }

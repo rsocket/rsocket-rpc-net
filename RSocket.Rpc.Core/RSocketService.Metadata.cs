@@ -6,7 +6,7 @@ namespace RSocket.RPC
 {
 	partial class RSocketService
 	{
-		public ref struct RemoteProcedureCallMetadata           //SPEC: https://github.com/rsocket/rsocket-rpc-java/blob/master/rsocket-rpc-core/src/main/java/io/rsocket/rpc/frames/Metadata.java
+		public struct RemoteProcedureCallMetadata           //SPEC: https://github.com/rsocket/rsocket-rpc-java/blob/master/rsocket-rpc-core/src/main/java/io/rsocket/rpc/frames/Metadata.java
 		{
 			public const UInt16 VERSION = 1;
 
@@ -16,6 +16,7 @@ namespace RSocket.RPC
 			public ReadOnlySequence<byte> Metadata;
 			static public readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 			public int Length => sizeof(UInt16) + sizeof(UInt16) + DefaultEncoding.GetByteCount(Service) + sizeof(UInt16) + DefaultEncoding.GetByteCount(Method) + sizeof(UInt16) + (int)Tracing.Length + (int)Metadata.Length;
+			public (string Service, string Method, ReadOnlySequence<byte> Tracing, ReadOnlySequence<byte> Metadata) AsTuple() => (Service, Method, Tracing, Metadata);
 
 			public RemoteProcedureCallMetadata(string service, string method, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> tracing) { Service = service; Method = method; Metadata = metadata; Tracing = tracing; }
 
