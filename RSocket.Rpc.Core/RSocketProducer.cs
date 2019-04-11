@@ -26,7 +26,7 @@ namespace RSocket.RPC
 		static public void AddService(this RSocketServer socket, IRSocketService service) => RSocketProducer.Register(socket, service);
 	}
 
-	public class RSocketProducer		//TOD RemoteService? Need a better name, look at Java.
+	public class RSocketProducer        //TOD RemoteService? Need a better name, look at Java.
 	{
 		//TODO Non-static, per-socket
 
@@ -44,15 +44,6 @@ namespace RSocket.RPC
 		}
 
 		static IAsyncEnumerable<ReadOnlySequence<byte>> Dispatch(ReadOnlySequence<byte> data, string service, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata)
-		{
-			if (Services.TryGetValue(service, out var target))
-			{
-				return target.Dispatch(data, method, tracing, metadata);
-			}
-			else
-			{
-				throw new InvalidOperationException();      //TODO Handle invalid service name request.
-			}
-		}
+			=> (Services.TryGetValue(service, out var target)) ? target.Dispatch(data, method, tracing, metadata) : throw new InvalidOperationException();      //TODO Handle invalid service name request.
 	}
 }

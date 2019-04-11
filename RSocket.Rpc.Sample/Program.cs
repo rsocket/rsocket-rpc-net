@@ -22,7 +22,7 @@ namespace RSocketRPCSample
 			var client = new RSocketClient(transport);
 			var service = new EchoService.EchoServiceClient(client);
 
-			var server = new RSocketServer(transport);
+			var server = new RSocketServer(transport.Beyond);
 			var producer = new MyEchoServer(server);
 
 			//TODO ASK: Should these be present in the generated methods to allow one-line construction?
@@ -31,7 +31,7 @@ namespace RSocketRPCSample
 
 			var streamresults = await service.RequestStream(Value.ForString("Test Request"))
 					.ToListAsync();     //Collect all of the results. In C#8, this can be an async foreach - nice!
-			streamresults.ForEach(result => Console.WriteLine(result));
+			streamresults.ForEach(result => Console.WriteLine($"{nameof(service.RequestStream)}() => {result.StringValue}"));
 
 
 			//Wait for a keypress to end session.
