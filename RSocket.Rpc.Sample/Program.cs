@@ -6,22 +6,60 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Google.Protobuf.WellKnownTypes;
+using System.Buffers;
 
 namespace RSocketRPCSample
 {
 
 	class Program
 	{
-		static async Task Main1(string[] args)
+		static async Task Main(string[] args)
 		{
-			var client = new RSocketClient(
-				new WebSocketTransport("ws://localhost:9092/"));
+			var transport = new LoopbackTransport();
+			//	new WebSocketTransport("ws://localhost:9092/"));
+			//	new SocketTransport("tcp://localhost:9091/")
+
+			var client = new RSocketClient(transport);
 			var service = new EchoService.EchoServiceClient(client);
 
+			var server = new RSocketServer(transport);
+			var producer = new MyEchoServer(server);
+
+			//TODO ASK: Should these be present in the generated methods to allow one-line construction?
+			await server.ConnectAsync();
 			await client.ConnectAsync();
+
+			var streamresults = await service.RequestStream(Value.ForString("Test Request"))
+					.ToListAsync();     //Collect all of the results. In C#8, this can be an async foreach - nice!
+			streamresults.ForEach(result => Console.WriteLine(result));
+
+
+			//Wait for a keypress to end session.
+			{ Console.WriteLine($"Press any key to continue..."); Console.ReadKey(); }
 		}
 
-		static async Task Main(string[] args)
+
+		//Implementors have two choices, implement IEchoService directly or override the provided abstract base class - shown below:
+		class MyEchoServer : EchoService.EchoServiceServer
+		{
+			public MyEchoServer(RSocket.RSocket socket) : base(socket) { }
+
+			public override IAsyncEnumerable<Value> RequestStream(Value message, ReadOnlySequence<byte> metadata)
+			{
+				return Yield().ToAsyncEnumerable();
+
+				IEnumerable<Value> Yield()		//In C#8.0, use an async generator.
+				{
+					yield return Value.ForString(message.StringValue + "and Result 1");
+					yield return Value.ForString(message.StringValue + "and Result 2");
+					yield return Value.ForString(message.StringValue + "and Result 3");
+				}
+			}
+		}
+
+
+
+		static async Task Main1(string[] args)
 		{
 			//Create a new Client.
 			var client = new RSocketClient(

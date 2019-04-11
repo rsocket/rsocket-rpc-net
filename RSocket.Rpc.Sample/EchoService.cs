@@ -93,37 +93,43 @@ namespace RSocketRPCSample
 			#endregion
 		}
 
-
-		static IAsyncEnumerable<byte[]> Dispatch(IEchoService service, ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata)
+		public abstract class EchoServiceServer : IEchoService, IRSocketService
 		{
-			switch (method)
+			string IRSocketService.ServiceName => Service;
+			IAsyncEnumerable<ReadOnlySequence<byte>> IRSocketService.Dispatch(ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata)
+				=> from result in Dispatch(this, data, method, tracing, metadata) select new ReadOnlySequence<byte>(result);
+
+
+			public abstract IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> RequestStream(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata);
+			//=> AsyncEnumerable.Empty<Google.Protobuf.WellKnownTypes.Value>();   //TODO This is supposed to fire an error if not implemented. In here for testing.
+
+			public Task FireAndForget(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
+			public Task<Google.Protobuf.WellKnownTypes.Value> RequestResponse(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
+			public IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> RequestChannel(IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> messages, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
+
+			public EchoServiceServer(RSocket.RSocket socket)
 			{
-				case Method_fireAndForget: return AsyncEnumerable.Empty<byte[]>();
-				//case Method_requestResponse: return from result in AsyncEnumerable.Repeat(		//TODO This would have to produce an IAE<Result> for this pattern to work.
-				//	requestResponse(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()),
-				//	metadata), 1) select Google.Protobuf.MessageExtensions.ToByteArray(result);
-				case Method_requestStream: return from result in service.RequestStream(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);
-				case Method_requestChannel: throw new NotImplementedException();
-				default: throw new InvalidOperationException($"Unknown method {method}.");
+				RSocketProducer.Register(socket, this);
 			}
-		}
-
-		public class EchoServiceServer : IEchoService, IRSocketService
-		{
-			public string ServiceName => Service;
 
 			//TODO Ask: So IAE<T> from everything? Or separate dispatchers for return types...? can reflection fix this?
 			//TODO Ask about the return types here - force all IAE?
 			//TODO Ask: structure, service name, reflection, default return values (stream, etc), byte[] as common return type. Should probably convert to byte[] (tracing, metadata, data).
 
-			IAsyncEnumerable<byte[]> IRSocketService.Dispatch(ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata) => Dispatch(this, data, method, tracing, metadata);
 
-			public virtual IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> RequestStream(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata)
-				=> AsyncEnumerable.Empty<Google.Protobuf.WellKnownTypes.Value>();	//TODO This is supposed to fire an error if not implemented. In here for testing.
-
-			public Task FireAndForget(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
-			public Task<Google.Protobuf.WellKnownTypes.Value> RequestResponse(Google.Protobuf.WellKnownTypes.Value message, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
-			public IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> RequestChannel(IAsyncEnumerable<Google.Protobuf.WellKnownTypes.Value> messages, ReadOnlySequence<byte> metadata) => throw new NotImplementedException();
+			static IAsyncEnumerable<byte[]> Dispatch(IEchoService service, ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata)
+			{
+				switch (method)
+				{
+					case Method_fireAndForget: return AsyncEnumerable.Empty<byte[]>();
+					//case Method_requestResponse: return from result in AsyncEnumerable.Repeat(		//TODO This would have to produce an IAE<Result> for this pattern to work.
+					//	requestResponse(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()),
+					//	metadata), 1) select Google.Protobuf.MessageExtensions.ToByteArray(result);
+					case Method_requestStream: return from result in service.RequestStream(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);
+					case Method_requestChannel: throw new NotImplementedException();
+					default: throw new InvalidOperationException($"Unknown method {Service}.{method}.");
+				}
+			}
 		}
 	}
 }

@@ -14,7 +14,7 @@ namespace RSocket.RPC
 	public interface IRSocketService
 	{
 		string ServiceName { get; }
-		IAsyncEnumerable<byte[]> Dispatch(ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata);
+		IAsyncEnumerable<ReadOnlySequence<byte>> Dispatch(ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata);
 	}
 
 
@@ -40,10 +40,10 @@ namespace RSocket.RPC
 
 			socket.Stream(message => (Remote: new RSocketService.RemoteProcedureCallMetadata(message.Metadata), message.Data),
 				request => Dispatch(request.Data, request.Remote.Service, request.Remote.Method, request.Remote.Tracing, request.Remote.Metadata),
-				result => (Data: new ReadOnlySequence<byte>(result), Metadata: default));
+				result => (Data: result, Metadata: default));
 		}
 
-		static IAsyncEnumerable<byte[]> Dispatch(ReadOnlySequence<byte> data, string service, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata)
+		static IAsyncEnumerable<ReadOnlySequence<byte>> Dispatch(ReadOnlySequence<byte> data, string service, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata)
 		{
 			if (Services.TryGetValue(service, out var target))
 			{
