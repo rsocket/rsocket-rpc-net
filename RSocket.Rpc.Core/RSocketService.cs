@@ -7,6 +7,12 @@ using System.Threading.Tasks;
 
 namespace RSocket.RPC
 {
+	public interface IRSocketService
+	{
+		string ServiceName { get; }
+		IAsyncEnumerable<ReadOnlySequence<byte>> Dispatch(ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata, IAsyncEnumerable<ReadOnlySequence<byte>> messages);
+	}
+
 	public abstract partial class RSocketService
 	{
 		private readonly RSocketClient Client;
@@ -55,7 +61,7 @@ namespace RSocket.RPC
 			=> __RequestStream(result => resultmapper(result.data), sourcemapper(message), metadata, tracing, service: service, method: method);
 
 		private protected IAsyncEnumerable<T> __RequestStream<T>(
-			Func<(ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data), T> resultmapper,
+			Func<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata), T> resultmapper,		//TODO This was out of order, check others!
 			ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default,
 			ReadOnlySequence<byte> tracing = default, string service = default, [CallerMemberName]string method = default)
 		=> Socket.RequestStream(resultmapper, data, new RemoteProcedureCallMetadata(service, method, metadata, tracing));
@@ -75,5 +81,44 @@ namespace RSocket.RPC
 			Func<TMessage, ReadOnlySequence<byte>> sourcemapper, Func<(ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data), T> resultmapper,
 			ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default, ReadOnlySequence<byte> tracing = default, string service = default, [CallerMemberName]string method = default)
 			=> Socket.RequestChannel<TMessage, T>(source, sourcemapper, resultmapper, data, new RemoteProcedureCallMetadata(service, method, metadata, tracing));
+
+
+		// ****** Producer-side dispatching ***** //
+
+		//TODO! Non-static, per-socket
+
+		static System.Collections.Concurrent.ConcurrentDictionary<string, IRSocketService> Services = new System.Collections.Concurrent.ConcurrentDictionary<string, IRSocketService>();
+
+		static public void Register(RSocket socket, IRSocketService service)
+		{
+			Services[service.ServiceName] = service;
+
+			//TODO Need to ensure that this really only happens once per Socket.
+
+			socket.Respond(message => (RPC: new RSocketService.RemoteProcedureCallMetadata(message.Metadata), message.Data),
+				request => Dispatch(request.Data, request.RPC.Service, request.RPC.Method, request.RPC.Tracing, request.RPC.Metadata),
+				result => (Data: result, Metadata: default));
+
+			//TODO This looks data/metadata backwards?
+			socket.Stream(message => (RPC: new RSocketService.RemoteProcedureCallMetadata(message.Metadata), message.Data),
+				request => Dispatch(request.Data, request.RPC.Service, request.RPC.Method, request.RPC.Tracing, request.RPC.Metadata),
+				result => (Data: result, Metadata: default));
+
+			socket.Channel((request, messages) => Dispatch(request.Data, request.RPC.Service, request.RPC.Method, request.RPC.Tracing, request.RPC.Metadata, messages.ToAsyncEnumerable()),
+				message => (RPC: new RSocketService.RemoteProcedureCallMetadata(message.Metadata), message.Data),
+				incoming => incoming.Data,
+				result => (Data: result, Metadata: default));
+		}
+
+		static IAsyncEnumerable<ReadOnlySequence<byte>> Dispatch(ReadOnlySequence<byte> data, string service, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata, IAsyncEnumerable<ReadOnlySequence<byte>> messages = default)
+			=> (Services.TryGetValue(service, out var target)) ? target.Dispatch(data, method, tracing, metadata, messages ?? AsyncEnumerable.Empty<ReadOnlySequence<byte>>()) : throw new InvalidOperationException();      //TODO Handle invalid service name request.
+	}
+
+	static public class RSocketServiceExtensions
+	{
+		////TODO Java style
+		//socket.AddService(new MyEchoServiceServer());
+
+		static public void AddService(this RSocketServer socket, IRSocketService service) => RSocketService.Register(socket, service);
 	}
 }

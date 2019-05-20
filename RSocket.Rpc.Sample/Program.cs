@@ -29,10 +29,21 @@ namespace RSocketRPCSample
 			await server.ConnectAsync();
 			await client.ConnectAsync();
 
-			var streamresults = await service.RequestStream(Value.ForString("Test Request"))
-					.ToListAsync();     //Collect all of the results. In C#8, this can be an async foreach - nice!
+			//await service.FireAndForget(Value.ForString("Fire and Forget Test Requrest"));
+			//Console.WriteLine($"{nameof(service.FireAndForget)}() => void");
+
+			var responseresult = await service.RequestResponse(Value.ForString("Request Response Test Requrest"));
+			Console.WriteLine($"{nameof(service.RequestResponse)}() => {responseresult.StringValue}");
+
+
+			var streamresults = await service.RequestStream(Value.ForString("Test Stream Request"))
+					.ToListAsync();			//Collect all of the results. In C#8, this can be an async foreach - nice!
 			streamresults.ForEach(result => Console.WriteLine($"{nameof(service.RequestStream)}() => {result.StringValue}"));
 
+
+			var channelresults = await service.RequestChannel((
+				from value in Enumerable.Range(1, 3) select Value.ForString($"Test Channel Value {value}")
+				).ToAsyncEnumerable()).ToListAsync();
 
 			//Wait for a keypress to end session.
 			{ Console.WriteLine($"Press any key to continue..."); Console.ReadKey(); }
@@ -44,19 +55,36 @@ namespace RSocketRPCSample
 		{
 			public MyEchoServer(RSocket.RSocket socket) : base(socket) { }
 
+			public async override Task FireAndForget(Value message, ReadOnlySequence<byte> metadata)
+			{
+				Console.WriteLine($"{nameof(EchoService.EchoServiceServer)}.{nameof(FireAndForget)}({message.StringValue}) request received.");
+				await Task.CompletedTask;
+			}
+
+			public override Task<Value> RequestResponse(Value message, ReadOnlySequence<byte> metadata)
+			{
+				Console.WriteLine($"{nameof(EchoService.EchoServiceServer)}.{nameof(RequestResponse)}({message.StringValue}) request received.");
+				return Task.FromResult(Value.ForString(message.StringValue + "and a Result"));
+			}
+
 			public override IAsyncEnumerable<Value> RequestStream(Value message, ReadOnlySequence<byte> metadata)
 			{
-				return Yield().ToAsyncEnumerable();
-
-				IEnumerable<Value> Yield()		//In C#8.0, use an async generator.
+				Console.WriteLine($"{nameof(EchoService.EchoServiceServer)}.{nameof(RequestStream)}({message.StringValue}) request received.");
+				return new[]
 				{
-					yield return Value.ForString(message.StringValue + "and Result 1");
-					yield return Value.ForString(message.StringValue + "and Result 2");
-					yield return Value.ForString(message.StringValue + "and Result 3");
-				}
+					Value.ForString(message.StringValue + " and Result 1"),
+					Value.ForString(message.StringValue + " and Result 2"),
+					Value.ForString(message.StringValue + " and Result 3"),
+				}.ToAsyncEnumerable();
+			}
+
+			public override IAsyncEnumerable<Value> RequestChannel(IAsyncEnumerable<Value> messages, ReadOnlySequence<byte> metadata)
+			{
+				Console.WriteLine($"{nameof(EchoService.EchoServiceServer)}.{nameof(RequestChannel)} request received.");
+				return from message in messages
+					   select Value.ForString(message.StringValue + " REFLECTED!");
 			}
 		}
-
 
 
 		static async Task Main1(string[] args)
