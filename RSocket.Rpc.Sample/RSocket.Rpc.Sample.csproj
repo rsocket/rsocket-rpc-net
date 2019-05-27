@@ -47,7 +47,7 @@
 
   <ItemGroup>
     <ProtoBuf Include="rsocket\options.proto" RSocketRpcServices="None" />
-    <ProtoBuf Include="echo.proto" RSocketRpcServices="Both" />
+    <ProtoBuf Include="echo.proto" RSocketRpcServices="None" />
   </ItemGroup>
 
 </Project>
