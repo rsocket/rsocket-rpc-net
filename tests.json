@@ -1,6 +1,4 @@
 {
-  "RSocket.Rpc.Core.Tests": [
-  ],
   "RSocket.Rpc.Tools.Tests": [
     "RSocket.Rpc.Tools.Tests.CppGeneratorTest",
     "RSocket.Rpc.Tools.Tests.CSharpGeneratorTest",

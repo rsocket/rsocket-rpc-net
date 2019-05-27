@@ -292,28 +292,32 @@ void GenerateClientClass(Printer* out, const ServiceDescriptor* service) {
     out->Indent();
     if (client_streaming) {
       if (server_streaming) {
-        out->Print("__RequestChannel(messages, $intransform$, $outtransform$, metadata, service: $servicefield$);\n",
+        out->Print("__RequestChannel(messages, $intransform$, $outtransform$, metadata, service: $servicefield$, method: $methodfield$);\n",
             "intransform", "Google.Protobuf.MessageExtensions.ToByteArray",
             "outtransform", GetClassName(method->output_type()) + ".Parser.ParseFrom",
-            "servicefield", GetServiceFieldName());
+            "servicefield", GetServiceFieldName(),
+            "methodfield", GetMethodFieldName(method));
       } else {
         //TODO
       }
     } else if (server_streaming) {
-      out->Print("__RequestStream(message, $intransform$, $outtransform$, metadata, service: $servicefield$);\n",
+      out->Print("__RequestStream(message, $intransform$, $outtransform$, metadata, service: $servicefield$, method: $methodfield$);\n",
           "intransform", "Google.Protobuf.MessageExtensions.ToByteArray",
           "outtransform", GetClassName(method->output_type()) + ".Parser.ParseFrom",
-          "servicefield", GetServiceFieldName());
+          "servicefield", GetServiceFieldName(),
+          "methodfield", GetMethodFieldName(method));
     } else {
       if (options.fire_and_forget()) {
-        out->Print("__RequestFireAndForget(message, $intransform$, metadata, service: $servicefield$);\n",
+        out->Print("__RequestFireAndForget(message, $intransform$, metadata, service: $servicefield$, method: $methodfield$);\n",
             "intransform", "Google.Protobuf.MessageExtensions.ToByteArray",
-            "servicefield", GetServiceFieldName());
+            "servicefield", GetServiceFieldName(),
+            "methodfield", GetMethodFieldName(method));
       } else {
-        out->Print("__RequestResponse(message, $intransform$, $outtransform$, metadata, service: $servicefield$);\n",
+        out->Print("__RequestResponse(message, $intransform$, $outtransform$, metadata, service: $servicefield$, method: $methodfield$);\n",
             "intransform", "Google.Protobuf.MessageExtensions.ToByteArray",
             "outtransform", GetClassName(method->output_type()) + ".Parser.ParseFrom",
-            "servicefield", GetServiceFieldName());
+            "servicefield", GetServiceFieldName(),
+            "methodfield", GetMethodFieldName(method));
       }
     }
 
@@ -331,89 +335,99 @@ void GenerateServerClass(Printer* out, const ServiceDescriptor* service) {
       "/// <summary>Base class for server-side implementations of "
       "$servicename$</summary>\n",
       "servicename", GetServiceClassName(service));
-  out->Print("public class $servername$ : RSocketServer\n", "servername", GetServerClassName(service));
+  out->Print("public abstract class $servername$ : IRSocketService, $interfacename$\n",
+      "servername", GetServerClassName(service), "interfacename", GetInterfaceName(service));
   out->Print("{\n");
   out->Indent();
 
-  out->Print("private readonly $interfacename$ service;\n", "interfacename", GetInterfaceName(service));
+  out->Print("string IRSocketService.ServiceName => $servicefield$;\n",
+             "servicefield", GetServiceFieldName());
+  out->Print("IAsyncEnumerable<ReadOnlySequence<byte>> IRSocketService.Dispatch(ReadOnlySequence<byte> data, string method, ReadOnlySequence<byte> tracing, ReadOnlySequence<byte> metadata, IAsyncEnumerable<ReadOnlySequence<byte>> messages)\n");
+  out->Indent();
+  out->Print("=> from result in Dispatch(this, data, method, tracing, metadata, from message in messages select message.ToArray()) select new ReadOnlySequence<byte>(result);\n");
+  out->Outdent();
   out->Print("\n");
 
-  out->Print("public $servername$(IRSocketServerTransport transport, $interfacename$ service) : base(transport)\n",
-             "servername", GetServerClassName(service), "interfacename", GetInterfaceName(service));
+  out->Print("public $servername$(RSocket.RSocket socket)\n",
+             "servername", GetServerClassName(service));
   out->Print("{\n");
   out->Indent();
-  out->Print("this.service = service;\n");
+  out->Print("RSocketService.Register(socket, this);\n");
   out->Outdent();
   out->Print("}\n");
   out->Print("\n");
 
-  std::vector<const MethodDescriptor*> fire_and_forget;
-  std::vector<const MethodDescriptor*> request_response;
-  std::vector<const MethodDescriptor*> request_stream;
-  std::vector<const MethodDescriptor*> request_channel;
-
+  // RPC methods
   for (int i = 0; i < service->method_count(); ++i) {
-    const MethodDescriptor* method = service->method(i);
+    const MethodDescriptor *method = service->method(i);
+    const RSocketMethodOptions options = method->options().GetExtension(io::rsocket::rpc::options);
+    bool client_streaming = method->client_streaming();
+    bool server_streaming = method->server_streaming();
+
+    if (server_streaming) {
+      out->Print("public abstract IAsyncEnumerable<$output_type$> $method_name$",
+                 "output_type", GetClassName(method->output_type()), "method_name", method->name());
+    } else if (client_streaming) {
+      out->Print("public abstract Task<$output_type$> $method_name$",
+                 "output_type", GetClassName(method->output_type()), "method_name", method->name());
+    } else {
+      if (options.fire_and_forget()) {
+        out->Print("public abstract Task $method_name$", "method_name", method->name());
+      } else {
+        out->Print("public abstract Task<$output_type$> $method_name$",
+                   "output_type", GetClassName(method->output_type()), "method_name", method->name());
+      }
+    }
+
+    if (client_streaming) {
+      // Bidirectional streaming or client streaming
+      out->Print("(IAsyncEnumerable<$input_type$> messages, ReadOnlySequence<byte> metadata);\n",
+                 "input_type", GetClassName(method->input_type()));
+    } else {
+      // Server streaming or simple RPC
+      out->Print("($input_type$ message, ReadOnlySequence<byte> metadata);\n",
+                 "input_type", GetClassName(method->input_type()));
+    }
+  }
+
+  out->Print("static IAsyncEnumerable<byte[]> Dispatch(IEchoService service, ReadOnlySequence<byte> data, string method, in ReadOnlySequence<byte> tracing, in ReadOnlySequence<byte> metadata, IAsyncEnumerable<byte[]> messages)\n");
+  out->Print("{\n");
+  out->Indent();
+  out->Print("switch (method)\n");
+  out->Print("{\n");
+  out->Indent();
+
+  // RPC methods
+  for (int i = 0; i < service->method_count(); ++i) {
+    const MethodDescriptor *method = service->method(i);
     const RSocketMethodOptions options = method->options().GetExtension(io::rsocket::rpc::options);
     bool client_streaming = method->client_streaming();
     bool server_streaming = method->server_streaming();
 
     if (client_streaming) {
-      request_channel.push_back(method);
+      out->Print("case $methodfield$: return from result in service.$method_name$(from message in messages select $output_type$.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
+          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "output_type", GetClassName(method->output_type()));
     } else if (server_streaming) {
-      request_stream.push_back(method);
+      out->Print("case $methodfield$: return from result in service.$method_name$($output_type$.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
+          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "output_type", GetClassName(method->output_type()));
     } else {
       if (options.fire_and_forget()) {
-        fire_and_forget.push_back(method);
+        out->Print("case $methodfield$: return AsyncEnumerable.Empty<byte[]>();\n",
+          "methodfield", GetMethodFieldName(method));
       } else {
-        request_response.push_back(method);
+        out->Print("case $methodfield$: return from result in service.$method_name$($output_type$.Parser.ParseFrom(data.ToArray()), metadata).ToAsyncEnumerable() select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
+          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "output_type", GetClassName(method->output_type()));
       }
     }
   }
 
-  // Fire and forget
-  if (!fire_and_forget.empty()) {
-    out->Print("public override void RequestFireAndForget(in RSocketProtocol.RequestFireAndForget message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)\n");
-    out->Print("{\n");
-    out->Indent();
+  out->Print("default: throw new InvalidOperationException(\"Unknown method: \" + method);\n",
+      "servicefield", GetServiceFieldName());
 
-    out->Outdent();
-    out->Print("}\n");
-    out->Print("\n");
-  }
-
-  // Request-Response
-  if (!request_response.empty()) {
-    out->Print("public override void RequestResponse(in RSocketProtocol.RequestResponse message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)\n");
-    out->Print("{\n");
-    out->Indent();
-
-    out->Outdent();
-    out->Print("}\n");
-    out->Print("\n");
-  }
-
-  // Request-Stream
-  if (!request_stream.empty()) {
-    out->Print("public override void RequestStream(in RSocketProtocol.RequestStream message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)\n");
-    out->Print("{\n");
-    out->Indent();
-
-    out->Outdent();
-    out->Print("}\n");
-    out->Print("\n");
-  }
-
-  // Request-Channel
-  if (!request_channel.empty()) {
-    out->Print("public override void RequestChannel(in RSocketProtocol.RequestChannel message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)\n");
-    out->Print("{\n");
-    out->Indent();
-
-    out->Outdent();
-    out->Print("}\n");
-  }
-
+  out->Outdent();
+  out->Print("}\n");
+  out->Outdent();
+  out->Print("}\n");
   out->Outdent();
   out->Print("}\n");
   out->Print("\n");
@@ -429,9 +443,9 @@ void GenerateService(Printer* out, const ServiceDescriptor* service,
   out->Print("public const string $servicefield$ = \"$servicename$\";\n",
              "servicefield", GetServiceFieldName(), "servicename",
              service->full_name());
-  /*for (int i = 0; i < service->method_count(); i++) {
+  for (int i = 0; i < service->method_count(); i++) {
     GenerateStaticMethodField(out, service->method(i));
-  }*/
+  }
   out->Print("\n");
 
   GenerateServiceDescriptorProperty(out, service);
@@ -486,14 +500,11 @@ string GetServices(const FileDescriptor* file, bool generate_client, bool genera
     out.Print(
         "using System;\n"
         "using System.Buffers;\n"
+        "using System.Collections.Generic;\n"
         "using System.Threading.Tasks;\n"
         "using RSocket;\n"
         "using RSocket.RPC;\n"
-        "#if NETCOREAPP3_0\n"
-        "using System.Collections.Generic;\n"
-        "#else\n"
-        "using RSocket.Collections.Generic;\n"
-        "#endif\n");
+        "using System.Linq;\n");
     out.Print("\n");
 
     string file_namespace = GetFileNamespace(file);
