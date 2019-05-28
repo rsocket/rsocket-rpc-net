@@ -24,7 +24,7 @@
     <Otherwise>
       <ItemGroup>
         <PackageReference Include="Google.Protobuf" Version="3.6.1" />
-        <PackageReference Include="RSocket.Rpc.Tools" Version="0.2.4">
+        <PackageReference Include="RSocket.Rpc.Tools" Version="0.2.5">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
@@ -47,7 +47,7 @@
 
   <ItemGroup>
     <ProtoBuf Include="rsocket\options.proto" RSocketRpcServices="None" />
-    <ProtoBuf Include="echo.proto" RSocketRpcServices="None" />
+    <ProtoBuf Include="echo.proto" RSocketRpcServices="Both" />
   </ItemGroup>
 
 </Project>
