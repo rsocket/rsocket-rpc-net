@@ -28,8 +28,17 @@ Linux and MacOS. Managed runtime is supplied separately in the RSocket.Rpc.Core 
     <None Pack="true" PackagePath="build\" Include="build\**\*.xml; build\**\*.props; build\**\*.targets;" />
 
     <!-- Protobuf assets (for Google.Protobuf.Tools) -->
-    <_ProtoAssetName Include="any;api;descriptor;duration;empty;field_mask;source_context;struct;timestamp;type;wrappers" />
-    <_Asset PackagePath="build/native/include/google/protobuf/" Include="@(_ProtoAssetName->'$(Assets_ProtoInclude)/google/protobuf/%(Identity).proto')" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/any.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/api.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/descriptor.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/duration.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/empty.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/field_mask.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/source_context.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/struct.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/timestamp.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/type.proto" />
+    <_Asset PackagePath="build/native/include/google/protobuf" Include="$(Assets_ProtoInclude)/google/protobuf/wrappers.proto" />
     <_Asset PackagePath="build/native/include/rsocket/" Include="$(Assets_ProtoInclude)/rsocket/options.proto" />
     <_Asset PackagePath="tools/windows_x64/" Include="$(Assets_ProtoCompiler)windows_x64/protoc.exe" />
     <_Asset PackagePath="tools/linux_x64/" Include="$(Assets_ProtoCompiler)linux_x64/protoc" />

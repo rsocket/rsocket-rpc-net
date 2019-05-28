@@ -390,7 +390,8 @@ void GenerateServerClass(Printer* out, const ServiceDescriptor* service) {
     }
   }
 
-  out->Print("static IAsyncEnumerable<byte[]> Dispatch(IEchoService service, ReadOnlySequence<byte> data, string method, in ReadOnlySequence<byte> tracing, in ReadOnlySequence<byte> metadata, IAsyncEnumerable<byte[]> messages)\n");
+  out->Print("static IAsyncEnumerable<byte[]> Dispatch($interfacename$ service, ReadOnlySequence<byte> data, string method, in ReadOnlySequence<byte> tracing, in ReadOnlySequence<byte> metadata, IAsyncEnumerable<byte[]> messages)\n",
+             "interfacename", GetInterfaceName(service));
   out->Print("{\n");
   out->Indent();
   out->Print("switch (method)\n");
