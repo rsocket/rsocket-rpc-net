@@ -113,7 +113,7 @@ namespace RSocketRPCSample
 			{
 				switch (method)
 				{
-					case Method_fireAndForget: return AsyncEnumerable.Empty<byte[]>();
+					case Method_fireAndForget: service.FireAndForget(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()), metadata); return AsyncEnumerable.Empty<byte[]>();
 					case Method_requestResponse: return from result in service.RequestResponse(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()), metadata).ToAsyncEnumerable() select Google.Protobuf.MessageExtensions.ToByteArray(result);
 					case Method_requestStream: return from result in service.RequestStream(Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);
 					case Method_requestChannel: return from result in service.RequestChannel(from message in messages select Google.Protobuf.WellKnownTypes.Value.Parser.ParseFrom(message), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);
