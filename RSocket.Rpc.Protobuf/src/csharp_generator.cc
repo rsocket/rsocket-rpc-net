@@ -406,18 +406,18 @@ void GenerateServerClass(Printer* out, const ServiceDescriptor* service) {
     bool server_streaming = method->server_streaming();
 
     if (client_streaming) {
-      out->Print("case $methodfield$: return from result in service.$method_name$(from message in messages select $output_type$.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
-          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "output_type", GetClassName(method->output_type()));
+      out->Print("case $methodfield$: return from result in service.$method_name$(from message in messages select $input_type$.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
+          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "input_type", GetClassName(method->input_type()));
     } else if (server_streaming) {
-      out->Print("case $methodfield$: return from result in service.$method_name$($output_type$.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
-          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "output_type", GetClassName(method->output_type()));
+      out->Print("case $methodfield$: return from result in service.$method_name$($input_type$.Parser.ParseFrom(data.ToArray()), metadata) select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
+          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "input_type", GetClassName(method->input_type()));
     } else {
       if (options.fire_and_forget()) {
         out->Print("case $methodfield$: return AsyncEnumerable.Empty<byte[]>();\n",
           "methodfield", GetMethodFieldName(method));
       } else {
-        out->Print("case $methodfield$: return from result in service.$method_name$($output_type$.Parser.ParseFrom(data.ToArray()), metadata).ToAsyncEnumerable() select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
-          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "output_type", GetClassName(method->output_type()));
+        out->Print("case $methodfield$: return from result in service.$method_name$($input_type$.Parser.ParseFrom(data.ToArray()), metadata).ToAsyncEnumerable() select Google.Protobuf.MessageExtensions.ToByteArray(result);\n",
+          "methodfield", GetMethodFieldName(method), "method_name", method->name(), "input_type", GetClassName(method->input_type()));
       }
     }
   }
