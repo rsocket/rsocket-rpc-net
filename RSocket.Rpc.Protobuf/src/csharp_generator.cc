@@ -265,7 +265,7 @@ void GenerateClientClass(Printer* out, const ServiceDescriptor* service) {
   out->Print("{\n");
   out->Indent();
 
-  out->Print("public $clientname$(RSocketClient client) : base(client) { }\n",
+  out->Print("public $clientname$(RSocket.RSocket socket) : base(socket) { }\n",
              "clientname", GetClientClassName(service));
   out->Print("\n");
 

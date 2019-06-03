@@ -15,10 +15,9 @@ namespace RSocket.RPC
 
 	public abstract partial class RSocketService
 	{
-		private readonly RSocketClient Client;
-		private RSocket Socket => Client;
+		private readonly RSocket Socket;
 
-		public RSocketService(RSocketClient client) { Client = client; }
+		public RSocketService(RSocket socket) { Socket = socket; }
 
 
 		protected Task __RequestFireAndForget<TMessage>(TMessage message, Func<TMessage, byte[]> messagemapper, 
