@@ -368,15 +368,6 @@ void GenerateServerClass(Printer* out, const ServiceDescriptor* service) {
   out->Outdent();
   out->Print("\n");
 
-  out->Print("public $servername$(RSocket.RSocket socket)\n",
-             "servername", GetServerClassName(service));
-  out->Print("{\n");
-  out->Indent();
-  out->Print("RSocketService.Register(socket, this);\n");
-  out->Outdent();
-  out->Print("}\n");
-  out->Print("\n");
-
   // RPC methods
   for (int i = 0; i < service->method_count(); ++i) {
     const MethodDescriptor *method = service->method(i);
