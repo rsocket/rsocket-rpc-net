@@ -44,7 +44,7 @@ namespace RSocket.RPC
 			=> __RequestResponse(_ => resultmapper(_.data), messagemapper(message), metadata, tracing, service: service, method: method);
 
 		private protected Task<T> __RequestResponse<T>(
-			Func<(ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data), T> resultmapper,
+			Func<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata), T> resultmapper,
 			ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default, ReadOnlySequence<byte> tracing = default, string service = default, [CallerMemberName]string method = default)
 			=> Socket.RequestResponse(resultmapper, data, new RemoteProcedureCallMetadata(service, method, metadata, tracing));
 
@@ -60,7 +60,7 @@ namespace RSocket.RPC
 			=> __RequestStream(result => resultmapper(result.data), sourcemapper(message), metadata, tracing, service: service, method: method);
 
 		private protected IAsyncEnumerable<T> __RequestStream<T>(
-			Func<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata), T> resultmapper,		//TODO This was out of order, check others!
+			Func<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata), T> resultmapper,
 			ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default,
 			ReadOnlySequence<byte> tracing = default, string service = default, [CallerMemberName]string method = default)
 		=> Socket.RequestStream(resultmapper, data, new RemoteProcedureCallMetadata(service, method, metadata, tracing));
@@ -77,7 +77,7 @@ namespace RSocket.RPC
 			=> __RequestChannel<TMessage, TResult>(messages, message => sourcemapper(message), result => resultmapper(result.data), data, metadata, tracing, service: service, method: method);
 
 		private protected IAsyncEnumerable<T> __RequestChannel<TMessage, T>(IAsyncEnumerable<TMessage> source,
-			Func<TMessage, ReadOnlySequence<byte>> sourcemapper, Func<(ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data), T> resultmapper,
+			Func<TMessage, ReadOnlySequence<byte>> sourcemapper, Func<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata), T> resultmapper,
 			ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default, ReadOnlySequence<byte> tracing = default, string service = default, [CallerMemberName]string method = default)
 			=> Socket.RequestChannel<TMessage, T>(source, sourcemapper, resultmapper, data, new RemoteProcedureCallMetadata(service, method, metadata, tracing));
 
