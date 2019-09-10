@@ -6,7 +6,7 @@ namespace RSocket.RPC
 {
 	partial class RSocketService
 	{
-		public struct RemoteProcedureCallMetadata           //SPEC: https://github.com/rsocket/rsocket-rpc-java/blob/master/rsocket-rpc-core/src/main/java/io/rsocket/rpc/frames/Metadata.java
+        public struct RemoteProcedureCallMetadata           //SPEC: https://github.com/rsocket/rsocket-rpc-java/blob/master/rsocket-rpc-core/src/main/java/io/rsocket/rpc/frames/Metadata.java
 		{
 			public const UInt16 VERSION = 1;
 
@@ -34,6 +34,11 @@ namespace RSocket.RPC
 				reader.Advance(tracinglength);
 				Metadata = reader.Sequence.Slice(reader.Position, reader.Remaining);
 			}
+
+            public static RemoteProcedureCallMetadata create(ReadOnlySequence<byte> metadata)
+            {
+                return new RemoteProcedureCallMetadata(metadata);
+            }
 
 			public static implicit operator ReadOnlySequence<byte>(RemoteProcedureCallMetadata _)
 			{

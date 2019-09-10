@@ -19,8 +19,7 @@ namespace RSocket.RPC
 
 		public RSocketService(RSocket socket) { Socket = socket; }
 
-
-		protected Task __RequestFireAndForget<TMessage>(TMessage message, Func<TMessage, byte[]> messagemapper, 
+        protected Task __RequestFireAndForget<TMessage>(TMessage message, Func<TMessage, byte[]> messagemapper, 
 			ReadOnlySequence<byte> metadata = default, ReadOnlySequence<byte> tracing = default, string service = default, [CallerMemberName]string method = default)
 			=> __RequestFireAndForget(new ReadOnlySequence<byte>(messagemapper(message)), metadata, tracing, service: service, method: method);
 
@@ -88,23 +87,24 @@ namespace RSocket.RPC
 
 		static System.Collections.Concurrent.ConcurrentDictionary<string, IRSocketService> Services = new System.Collections.Concurrent.ConcurrentDictionary<string, IRSocketService>();
 
-		static public void Register(RSocket socket, IRSocketService service)
+        static public void Register(RSocket socket, IRSocketService service, Func<ReadOnlySequence<byte>, RSocketService.RemoteProcedureCallMetadata> metadataMapper = null)
 		{
 			Services[service.ServiceName] = service;
 
-			//TODO Need to ensure that this really only happens once per Socket.
+            metadataMapper = metadataMapper ?? RemoteProcedureCallMetadata.create;
+            //TODO Need to ensure that this really only happens once per Socket.
 
-			socket.Respond(message => (RPC: new RSocketService.RemoteProcedureCallMetadata(message.Metadata), message.Data),
+            socket.Respond(message => (RPC: metadataMapper(message.Metadata), message.Data),
 				request => Dispatch(request.Data, request.RPC.Service, request.RPC.Method, request.RPC.Tracing, request.RPC.Metadata),
 				result => (Data: result, Metadata: default));
 
 			//TODO This looks data/metadata backwards?
-			socket.Stream(message => (RPC: new RSocketService.RemoteProcedureCallMetadata(message.Metadata), message.Data),
+			socket.Stream(message => (RPC: metadataMapper(message.Metadata), message.Data),
 				request => Dispatch(request.Data, request.RPC.Service, request.RPC.Method, request.RPC.Tracing, request.RPC.Metadata),
 				result => (Data: result, Metadata: default));
 
 			socket.Channel((request, messages) => Dispatch(request.Data, request.RPC.Service, request.RPC.Method, request.RPC.Tracing, request.RPC.Metadata, messages.ToAsyncEnumerable()),
-				message => (RPC: new RSocketService.RemoteProcedureCallMetadata(message.Metadata), message.Data),
+				message => (RPC: metadataMapper(message.Metadata), message.Data),
 				incoming => incoming.Data,
 				result => (Data: result, Metadata: default));
 		}
